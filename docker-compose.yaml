@@ -3,6 +3,7 @@ version: "3.7"
 volumes:
   kong_data: {}
   konga_data: {}
+  webpress_application_service_db: {}
 
 networks:
   kong-net:
@@ -65,10 +66,8 @@ services:
     networks:
       - kong-net
     ports:
-      - "8000:8000/tcp"
-      - "127.0.0.1:8001:8001/tcp"
-      - "8443:8443/tcp"
-      - "127.0.0.1:8444:8444/tcp"
+      - "80:8000/tcp"
+      - "443:8443/tcp"
     healthcheck:
       test: ["CMD", "kong", "health"]
       interval: 10s
@@ -128,6 +127,9 @@ services:
     image: pantsel/konga
     depends_on:
       - kongadb
+    links:
+      - kong
+
     environment:
       TOKEN_SECRET: AgzCkxCFNAsrXys8Q5gbfDSH
       KONGA_HOOK_TIMEOUT: 10000
@@ -141,3 +143,25 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
+  webpress_application_service:
+    image: docker-registry.vicoders.com/webpress_application_service:production
+    networks:
+      - kong-net
+    environment:
+      - "DB_HOST=webpress_application_service_db"
+      - "DB_DATABASE=webpress_application_service"
+      - "DB_USERNAME=webpress_application_service"
+      - "DB_PASSWORD=781b9c592e9339999d04dae69de68fe9"
+  webpress_application_service_db:
+    image: "mysql:8.0"
+    command: >
+      --default-authentication-plugin=mysql_native_password
+    networks:
+      - kong-net
+    environment:
+      - "MYSQL_ROOT_PASSWORD=21732fda20190373992000c2abc3f2e4"
+      - "MYSQL_DATABASE=webpress_application_service"
+      - "MYSQL_USER=webpress_application_service"
+      - "MYSQL_PASSWORD=781b9c592e9339999d04dae69de68fe9"
+    volumes:
+      - webpress_application_service_db:/var/lib/mysql
